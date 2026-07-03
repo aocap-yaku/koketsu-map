@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抗凝固薬・抗血小板薬リファレンス｜作用点 × 出血・腎・休薬マトリックス</title>
+<meta name="description" content="DOAC4種＋ワルファリン＋抗血小板薬を、作用点・出血リスク・腎排泄・周術期休薬・相互作用でマトリックス化。周術期の休薬日数を素早く確認するための早見表。オフライン動作・単一HTML。">
+<style>
+:root{
+  --ink:#111a2e;--ink2:#38455f;--muted:#768396;
+  --paper:#f4f5f2;--card:#ffffff;--line:#e2e4df;
+  /* 藍/インディゴ(抗凝固テーマ) */
+  --indigo:#16233f;--indigo2:#26406b;
+  /* 指標ヒート4段: 0=淡グレー→3=濃藍。高いほど注意/影響大 */
+  --s0:#efe6e2;--s1:#eab9a6;--s2:#d67955;--s3:#9c3223;
+  /* 群バー: 薬力(作用) / 薬物動態 / 安全性 */
+  --g-pd:#2f7d6b;--g-pk:#c07a2c;--g-sf:#a53f57;
+  --accent:#c2412e; /* 朱(差し色) */
+  --shadow:0 1px 2px rgba(17,26,46,.06),0 8px 24px rgba(17,26,46,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",sans-serif;
+  color:var(--ink);background:var(--paper);line-height:1.6;
+  font-feature-settings:"palt";-webkit-font-smoothing:antialiased;
+}
+
+/* ---- Header ---- */
+header{
+  background:linear-gradient(160deg,var(--indigo) 0%,var(--indigo2) 100%);
+  color:#eef1f7;padding:26px 20px 22px;position:relative;overflow:hidden;
+}
+/* 血流をイメージした微細な流線装飾 */
+header::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:
+    radial-gradient(circle at 14% 26%,rgba(194,65,46,.16) 0 5px,transparent 6px),
+    radial-gradient(circle at 82% 22%,rgba(255,255,255,.08) 0 8px,transparent 9px),
+    radial-gradient(circle at 90% 76%,rgba(194,65,46,.12) 0 4px,transparent 5px),
+    radial-gradient(circle at 32% 84%,rgba(255,255,255,.06) 0 10px,transparent 11px);
+}
+.wrap{max-width:1220px;margin:0 auto}
+.eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;opacity:.72;font-weight:700}
+header h1{font-size:clamp(22px,4.6vw,34px);font-weight:800;letter-spacing:.01em;margin:6px 0 6px;line-height:1.2}
+header p{font-size:13.5px;opacity:.86;max-width:680px}
+
+/* ---- Controls ---- */
+.controls{
+  background:var(--card);border-bottom:1px solid var(--line);
+  padding:14px 20px;position:sticky;top:0;z-index:30;box-shadow:0 2px 10px rgba(17,26,46,.04);
+}
+.controls .wrap{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:10px;letter-spacing:.08em;color:var(--muted);font-weight:700;text-transform:uppercase}
+select,input[type=text]{
+  font-family:inherit;font-size:13px;color:var(--ink);
+  border:1.5px solid var(--line);border-radius:9px;padding:8px 11px;background:#fff;min-height:38px;
+}
+input[type=text]{min-width:190px}
+select:focus,input:focus{outline:2px solid var(--indigo2);outline-offset:1px;border-color:var(--indigo2)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:9px;overflow:hidden;background:#fff}
+.seg button{font-family:inherit;font-size:12.5px;font-weight:600;border:0;background:transparent;color:var(--ink2);padding:8px 12px;cursor:pointer;min-height:38px}
+.seg button.on{background:var(--indigo);color:#fff}
+.spacer{flex:1}
+.count{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+
+/* ---- Legend ---- */
+.legend{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:12px 20px;font-size:12px;color:var(--ink2)}
+.legend .wrap{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.sw{width:16px;height:16px;border-radius:4px;border:1px solid rgba(0,0,0,.08)}
+.leg-div{width:1px;height:16px;background:var(--line)}
+
+/* ---- Table ---- */
+.tablecard{max-width:1220px;margin:8px auto 0;padding:0 12px 40px}
+.scroll{overflow:auto;border:1px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--shadow);-webkit-overflow-scrolling:touch}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:820px}
+thead th{position:sticky;top:0;z-index:12;background:var(--card)}
+th.drugcol{position:sticky;left:0;z-index:20;background:var(--card);text-align:left;min-width:196px;max-width:196px}
+thead th.drugcol{z-index:25}
+th,td{padding:0;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+th.methead{
+  vertical-align:bottom;padding:10px 6px 9px;text-align:center;min-width:96px;
+  border-bottom:2px solid var(--line);
+}
+th.methead .mname{font-size:12px;font-weight:700;line-height:1.2;display:block}
+th.methead .msub{font-size:9.5px;font-weight:600;color:var(--muted);display:block;margin-top:2px;letter-spacing:.02em}
+th.methead .gbar{display:block;height:3px;border-radius:2px;margin:6px auto 0;width:30px}
+.g-pd{background:var(--g-pd)}.g-pk{background:var(--g-pk)}.g-sf{background:var(--g-sf)}
+
+.catrow td{
+  background:var(--indigo);color:#eaf0f7;font-size:11px;font-weight:700;letter-spacing:.1em;
+  padding:5px 12px;position:sticky;left:0;text-transform:uppercase;
+}
+tbody th.drugcol{padding:9px 11px;border-bottom:1px solid var(--line);vertical-align:middle}
+.dname{font-size:13px;font-weight:700;color:var(--ink);line-height:1.25;display:block}
+.dabbr{font-size:10.5px;color:var(--indigo2);font-weight:700;letter-spacing:.04em}
+.dtarget{font-size:10.5px;color:var(--muted);display:block;margin-top:1px}
+tbody th.drugcol:hover{background:#f3f6fb;cursor:pointer}
+
+td.cell{text-align:center;font-size:13px;font-weight:800;color:rgba(17,26,46,.5);cursor:pointer;position:relative}
+td.s0{background:var(--s0)}
+td.s1{background:var(--s1);color:#6b2e1c}
+td.s2{background:var(--s2);color:#fff}
+td.s3{background:var(--s3);color:#fff}
+td.na{background:repeating-linear-gradient(45deg,#eceae2 0 5px,#e2ddd0 5px 6px);color:#9aa3af;font-size:11px}
+td.cell:hover{outline:2px solid var(--accent);outline-offset:-2px}
+tr.hoverrow th.drugcol,tr.hoverrow td{background-image:linear-gradient(rgba(194,65,46,.06),rgba(194,65,46,.06))}
+
+/* ---- Detail panel ---- */
+.overlay{position:fixed;inset:0;background:rgba(17,26,46,.44);z-index:60;display:none;align-items:flex-end;justify-content:center}
+.overlay.open{display:flex}
+.panel{background:var(--card);width:100%;max-width:580px;border-radius:18px 18px 0 0;padding:22px 22px 30px;max-height:84vh;overflow:auto;box-shadow:0 -8px 40px rgba(0,0,0,.2)}
+@media(min-width:640px){.overlay{align-items:center}.panel{border-radius:18px}}
+.panel .close{float:right;border:0;background:var(--paper);width:34px;height:34px;border-radius:9px;font-size:18px;cursor:pointer;color:var(--ink2)}
+.panel h2{font-size:20px;font-weight:800;margin-bottom:2px;padding-right:40px}
+.panel .sub{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+.panel .cat-tag{display:inline-block;background:var(--indigo);color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:6px;margin-bottom:12px}
+.panel .note{font-size:13.5px;color:var(--ink2);line-height:1.72;background:var(--paper);border-radius:11px;padding:13px 15px;margin-bottom:16px;border-left:3px solid var(--accent)}
+/* 作用点SVG */
+.cascade{background:var(--paper);border-radius:11px;padding:12px 10px 6px;margin-bottom:16px}
+/* 指標グリッド */
+.mhead{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin:0 0 7px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px;margin-bottom:16px}
+.pcell{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 11px;border-radius:8px;font-size:11.5px;font-weight:600;background:rgba(17,26,46,.03)}
+.pcell .pk{color:var(--ink2)}
+.pcell .pv{font-weight:800;font-size:11px;padding:1px 7px;border-radius:5px;min-width:22px;text-align:center}
+/* KV詳細 */
+.kv{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.kv:last-child{border-bottom:0}
+.kv .k{min-width:96px;color:var(--muted);font-weight:700}
+.kv .v{flex:1;color:var(--ink);font-weight:600}
+.detail-h{font-size:12px;font-weight:800;color:var(--indigo2);letter-spacing:.04em;margin:18px 0 4px}
+
+footer{max-width:1220px;margin:0 auto;padding:8px 20px 46px;font-size:11.5px;color:var(--muted);line-height:1.7}
+footer .disc{background:#fff;border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+footer strong{color:var(--ink2)}
+footer .src{margin-top:10px;color:var(--muted)}
+.noresult{padding:40px 20px;text-align:center;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <span class="eyebrow">Anticoagulant × Antiplatelet Reference</span>
+    <h1>抗凝固薬・抗血小板薬リファレンス</h1>
+    <p>DOAC4種＋ワルファリン＋抗血小板薬9剤を、作用点・出血リスク・腎排泄・周術期休薬・相互作用でひと目に。周術期／抜歯前の「この薬、何日前に休薬？」を素早く確認するための早見表です。</p>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="wrap">
+    <div class="field">
+      <label for="q">薬剤名で絞り込み</label>
+      <input type="text" id="q" placeholder="例：リクシアナ / DOAC / ワルファリン">
+    </div>
+    <div class="field">
+      <label for="cat">系統</label>
+      <select id="cat"><option value="">すべての系統</option></select>
+    </div>
+    <div class="field">
+      <label>指標グループ</label>
+      <div class="seg" id="grpseg">
+        <button data-g="all" class="on">全て</button>
+        <button data-g="pd">作用</button>
+        <button data-g="pk">薬物動態</button>
+        <button data-g="sf">安全性</button>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <div class="count" id="count"></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="wrap">
+    <span class="chip"><span class="sw" style="background:var(--s3)"></span>3 大</span>
+    <span class="chip"><span class="sw" style="background:var(--s2)"></span>2 中</span>
+    <span class="chip"><span class="sw" style="background:var(--s1)"></span>1 小</span>
+    <span class="chip"><span class="sw" style="background:var(--s0)"></span>0 最小/なし</span>
+    <span class="leg-div"></span>
+    <span class="chip"><span class="sw g-pd" style="height:3px;border-radius:2px"></span>作用</span>
+    <span class="chip"><span class="sw g-pk" style="height:3px;border-radius:2px"></span>薬物動態</span>
+    <span class="chip"><span class="sw g-sf" style="height:3px;border-radius:2px"></span>安全性</span>
+    <span class="leg-div"></span>
+    <span class="chip" style="color:var(--muted);font-weight:600">数値が高い＝注意・影響が大きい方向で統一</span>
+  </div>
+</div>
+
+<div class="tablecard">
+  <div class="scroll">
+    <table id="tbl">
+      <thead><tr id="headrow"></tr></thead>
+      <tbody id="body"></tbody>
+    </table>
+  </div>
+  <div class="noresult" id="noresult" style="display:none">該当する薬剤がありません。条件を変えてください。</div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="disc">
+      <strong>ご利用にあたって：</strong>本ツールの各指標は代表的な目安を4段階（0〜3）で相対化したものです。休薬日数・減量基準・相互作用は、ガイドライン改訂・電子添文・患者背景（腎機能・年齢・体重・併用薬・出血/血栓リスク）により変わります。<strong>抜歯（低出血リスク処置）では抗血栓薬は原則継続が現行ガイドラインの立場です。個別の投与・休薬判断は必ず最新の電子添文・院内規定・主治医の指示に従ってください。</strong>本ツールは診断・処方の代替ではありません。
+      <div class="src">主な参照：各薬剤 電子添文／2020年JCSガイドライン フォーカスアップデート版 冠動脈疾患患者における抗血栓療法／2022年改訂版 非心臓手術における合併心疾患の評価と管理に関するガイドライン（日本循環器学会）／抗血栓療法患者の抜歯に関するガイドライン。 単一HTML・依存ライブラリなし・オフライン動作 ／ aocap-yaku series</div>
+    </div>
+  </div>
+</footer>
+
+<div class="overlay" id="overlay">
+  <div class="panel" id="panel"></div>
+</div>
+
+<script>
+/* =========================================================
+   指標定義（列）: 全て「高い＝注意/影響が大きい」方向で統一
+   group: pd=作用, pk=薬物動態, sf=安全性
+   ========================================================= */
+const METRICS = [
+  { id:"bleed",   name:"出血リスク", sub:"相対",       group:"sf",
+    scale:["最小","小","中","高"] },
+  { id:"washout", name:"周術期休薬", sub:"高リスク処置", group:"sf",
+    scale:["継続級","1〜2日","3〜4日","5日以上"] },
+  { id:"renal",   name:"腎排泄依存", sub:"腎機能の影響", group:"pk",
+    scale:["低依存","軽度","中等度","高度"] },
+  { id:"cyp",     name:"CYP依存",   sub:"CYP3A4等",   group:"pk",
+    scale:["ほぼなし","小","中","大"] },
+  { id:"pgp",     name:"P-gp依存",  sub:"相互作用",    group:"pk",
+    scale:["ほぼなし","小","中","大"] },
+  { id:"onset",   name:"作用の強さ", sub:"抗血栓強度",  group:"pd",
+    scale:["緩","中","強","最強"] },
+  { id:"reverse", name:"中和の要否", sub:"高値=中和薬あり", group:"sf",
+    scale:["手段限定","一般対応","一部特異","特異的中和薬"] }
+];
+
+/* =========================================================
+   薬剤データ
+   spec: 各指標id -> 0..3
+   detail: ドロワー用の実務情報
+   ========================================================= */
+const DRUGS = [
+  // --- DOAC ---
+  { id:"dabi", name:"ダビガトラン", abbr:"プラザキサ", target:"トロンビン(IIa)阻害", cat:"DOAC",
+    spec:{bleed:2, washout:1, renal:3, cyp:0, pgp:3, onset:2, reverse:3},
+    detail:{
+      half:"12–17h", metab:"P-gp（CYP関与ほぼなし、P-gp阻害はしない基質のみ）", renalPct:"約85%",
+      dose_n:"150mg 1日2回", dose_r:"次のいずれかで110mg 1日2回を考慮：①CCr30–50 ②P-gp阻害薬(経口)併用 ③70歳以上 ④消化管出血の既往", dose_s:"CCr<30：禁忌",
+      wo_n:"24–48時間前", wo_r:"CCr50–80:2–3日 / 30–50:4日前", dental:"原則継続",
+      rev:"イダルシズマブ（プリズバインド）で特異的中和",
+      inter:"P-gp阻害薬（ベラパミル・アミオダロン・イトラコナゾール等）で血中濃度上昇。イトラコナゾールは併用禁忌。",
+      memo:"直接トロンビン阻害。腎排泄が最も高く腎機能の影響大。専用中和薬あり。カプセルは吸湿性で一包化不可。" }
+  },
+  { id:"riva", name:"リバーロキサバン", abbr:"イグザレルト", target:"第Xa因子阻害", cat:"DOAC",
+    spec:{bleed:2, washout:1, renal:2, cyp:2, pgp:2, onset:2, reverse:1},
+    detail:{
+      half:"5–9h", metab:"CYP3A4・CYP2J2・P-gp・BCRP", renalPct:"約66%（未変化体は約1/3、残りは代謝物として尿中・糞中）",
+      dose_n:"15mg 1日1回（NVAF）", dose_r:"CCr30–49：10mg 1日1回。CCr15–29は適否を慎重に検討した上で10mg", dose_s:"CCr<15：禁忌／中等度以上の肝障害(Child-Pugh B・C)：禁忌",
+      wo_n:"24時間以上前", wo_r:"CCr30–50:2日前目安に延長", dental:"原則継続",
+      rev:"アンデキサネット アルファ（Xa阻害薬中和）※適応・供給を確認",
+      inter:"リトナビル含有製剤・ダルナビル・ホスアンプレナビル・コビシスタット含有製剤・イトラコナゾール等アゾール系(経口/注射)・エンシトレルビル・ロナファルニブはいずれも併用禁忌（CYP3A4+P-gp強阻害でクリアランス減少）。リファンピシン等強い誘導薬で効果減弱。",
+      memo:"1日1回。食後投与が原則（吸収変動）。CYP3A4依存が4種の中で相対的に大きく、併用禁忌薬が多い。75歳以上で出血発現率が高い傾向（国内第III相試験）。" }
+  },
+  { id:"apix", name:"アピキサバン", abbr:"エリキュース", target:"第Xa因子阻害", cat:"DOAC",
+    spec:{bleed:1, washout:1, renal:1, cyp:2, pgp:2, onset:2, reverse:1},
+    detail:{
+      half:"9–14h", metab:"CYP3A4・P-gp", renalPct:"約27%",
+      dose_n:"5mg 1日2回", dose_r:"①80歳以上 ②体重60kg以下 ③血清Cr≥1.5 のうち2つ以上→2.5mg 1日2回", dose_s:"CCr<15/透析：基本推奨されず（要個別）",
+      wo_n:"24–48時間前", wo_r:"腎機能低下でやや延長", dental:"原則継続",
+      rev:"アンデキサネット（Xa阻害薬中和）※適応・供給を確認",
+      inter:"アゾール・HIV-PIで減量／併用注意。腎排泄寄与が小さく腎機能低下例で比較的使いやすい。",
+      memo:"腎排泄率が最も低く（約27%）、消化管出血リスクが相対的に低いとされる。減量は3項目2つ以上ルール。" }
+  },
+  { id:"edox", name:"エドキサバン", abbr:"リクシアナ", target:"第Xa因子阻害", cat:"DOAC",
+    spec:{bleed:1, washout:1, renal:2, cyp:0, pgp:3, onset:2, reverse:1},
+    detail:{
+      half:"9–11h", metab:"P-gp（CYP3A4関与は投与量の10%未満）", renalPct:"約35%（尿中排泄率、うち未変化体は約24%）",
+      dose_n:"体重60kg以下：30mg 1日1回／体重60kg超：60mg 1日1回", dose_r:"CCr30–50またはP-gp阻害薬併用のいずれかで1段階減量（60mg→30mg）。出血リスクが高い高齢者は15mgへの減量も選択可", dose_s:"CCr<15：禁忌",
+      wo_n:"24時間前（前日まで）", wo_r:"腎機能低下で延長を考慮", dental:"原則継続",
+      rev:"アンデキサネット（Xa阻害薬中和）※適応・供給を確認",
+      inter:"P-gp阻害薬で1つ該当→減量対象。CYP依存は小さい。",
+      memo:"1日1回・P-gp主体。用量は体重で決まり（60kg以下30mg／超60mg）、腎機能かP-gp阻害薬のどちらか1つでも該当すれば1段階減量（アピキサバンの『3項目中2つ』ルールとは対比的に緩い基準）。" }
+  },
+  // --- 抗凝固(VKA) ---
+  { id:"warf", name:"ワルファリン", abbr:"ワーファリン", target:"Vit.K依存因子(II,VII,IX,X)", cat:"抗凝固(VKA)",
+    spec:{bleed:3, washout:3, renal:0, cyp:2, pgp:0, onset:3, reverse:3},
+    detail:{
+      half:"個体差大（国内IF値で55–133h）", metab:"CYP2C9・肝代謝", renalPct:"低依存",
+      dose_n:"PT-INR目標に調節（NVAF 1.6–2.6 等）", dose_r:"腎機能でなくINRでモニタ", dose_s:"—",
+      wo_n:"術前3–5日前休薬＋INR確認（塞栓高リスクはヘパリン置換）", wo_r:"—（INR基準）", dental:"治療域INRなら原則継続",
+      rev:"ビタミンK・新鮮凍結血漿・プロトロンビン複合体（ケイセントラ）",
+      inter:"骨粗鬆症治療用ビタミンK2製剤（メナテトレノン／グラケー）・イグラチモド（ケアラム）はいずれも併用禁忌。それ以外もNSAIDs・アゾール・アミオダロンでINR上昇、ビタミンK（納豆・青汁・クロレラ）で減弱など相互作用が非常に多い。",
+      memo:"効果消失に数日を要し休薬が最長クラス。食事・併用薬の影響大でINRモニタ必須。中和手段が確立。ビタミンK2製剤・イグラチモドとは併用禁忌。" }
+  },
+  // --- 抗血小板 ---
+  { id:"asa", name:"アスピリン", abbr:"バイアスピリン等", target:"COX-1(不可逆)", cat:"抗血小板",
+    spec:{bleed:1, washout:3, renal:0, cyp:0, pgp:0, onset:1, reverse:0},
+    detail:{
+      half:"血小板寿命依存（不可逆・7–10日）", metab:"—", renalPct:"低依存",
+      dose_n:"81–100mg 1日1回", dose_r:"腎機能での調節は原則不要", dose_s:"—",
+      wo_n:"7–14日前（高出血リスク手術）／単剤は継続する場合も多い", wo_r:"—", dental:"原則継続",
+      rev:"血小板輸血（緊急時）",
+      inter:"他抗血小板薬・抗凝固薬・NSAIDsの併用で出血相加。消化管出血。",
+      memo:"血栓リスクが高い症例では周術期も継続推奨が多い。休薬は個別評価。" }
+  },
+  { id:"clop", name:"クロピドグレル", abbr:"プラビックス", target:"P2Y12(不可逆)", cat:"抗血小板",
+    spec:{bleed:2, washout:3, renal:0, cyp:2, pgp:0, onset:2, reverse:0},
+    detail:{
+      half:"血小板寿命依存（不可逆）", metab:"CYP2C19（プロドラッグ活性化）", renalPct:"低依存",
+      dose_n:"75mg 1日1回（LD 300mg）", dose_r:"腎機能での調節は原則不要", dose_s:"—",
+      wo_n:"5–7日前", wo_r:"—", dental:"原則継続（単剤）",
+      rev:"血小板輸血（緊急時）",
+      inter:"CYP2C19阻害（オメプラゾール等一部PPI）で活性化低下→効果減弱の懸念。他抗血栓薬で出血相加。",
+      memo:"P2Y12不可逆阻害。休薬5–7日目安。PPI選択に配慮する場面あり。" }
+  },
+  { id:"pras", name:"プラスグレル", abbr:"エフィエント", target:"P2Y12(不可逆)", cat:"抗血小板",
+    spec:{bleed:2, washout:3, renal:0, cyp:1, pgp:0, onset:3, reverse:0},
+    detail:{
+      half:"血小板寿命依存（不可逆）", metab:"エステラーゼ／CYP（活性化速い）", renalPct:"低依存",
+      dose_n:"3.75mg 1日1回（国内PCI用量）", dose_r:"—", dose_s:"—",
+      wo_n:"14日以上前", wo_r:"—", dental:"原則継続（単剤）",
+      rev:"血小板輸血（緊急時）",
+      inter:"他抗血栓薬で出血相加。CYP2C19多型の影響を受けにくい（クロピドグレルとの相違）。",
+      memo:"クロピドグレルより効果発現が速く安定。添付文書上、休薬目安は14日以上前と抗血小板薬の中で最長クラス（クロピドグレルの5–7日より明確に長い）。" }
+  },
+  { id:"tica", name:"チカグレロル", abbr:"ブリリンタ", target:"P2Y12(可逆)", cat:"抗血小板",
+    spec:{bleed:2, washout:3, renal:0, cyp:2, pgp:1, onset:3, reverse:0},
+    detail:{
+      half:"約7h（可逆・活性代謝物も同程度）", metab:"CYP3A4基質・弱阻害／P-gp基質・阻害／BCRP阻害", renalPct:"低依存（重度腎障害・透析でも抗血小板作用は同程度）",
+      dose_n:"【ACS(PCI)】初回180mg→維持90mg 1日2回／【陳旧性心筋梗塞の二次予防】60mg 1日2回", dose_r:"腎機能での調節は原則不要（低依存）", dose_s:"重度肝機能障害：禁忌（投与しないこと）",
+      wo_n:"5日前", wo_r:"出血リスクが高くなければ3日前まで短縮を検討する運用例あり（施設基準）", dental:"原則継続（単剤）",
+      rev:"血小板輸血の効果は限定的（可逆結合のため理論上は他薬より回復早いが専用中和薬なし）",
+      inter:"強いCYP3A4阻害薬（イトラコナゾール・ボリコナゾール・クラリスロマイシン・リトナビル・コビシスタット含有製剤・エンシトレルビル等）・強いCYP3A4誘導薬（リファンピシン等）はいずれも併用禁忌。P-gp/BCRP基質でもあり相互作用の軸が多い。他抗血栓薬で出血相加。",
+      memo:"可逆的P2Y12阻害・1日2回。必ずアスピリン81–100mg/日と併用。CYP3A4阻害薬/誘導薬いずれも併用禁忌という強い相互作用プロファイルが特徴。重度肝機能障害は禁忌。75歳超の高齢者で出血発現率が高い傾向（アジア共同第3相試験）。" }
+  },
+  { id:"cilo", name:"シロスタゾール", abbr:"プレタール", target:"PDE3阻害", cat:"抗血小板",
+    spec:{bleed:0, washout:1, renal:0, cyp:2, pgp:0, onset:1, reverse:0},
+    detail:{
+      half:"短め（可逆）", metab:"CYP3A4・CYP2C19", renalPct:"低依存",
+      dose_n:"100mg 1日2回", dose_r:"—", dose_s:"うっ血性心不全に禁忌",
+      wo_n:"1–3日前（短い）", wo_r:"—", dental:"原則継続",
+      rev:"—",
+      inter:"CYP3A4/2C19阻害薬で血中濃度上昇。頭痛・動悸・頻脈。",
+      memo:"出血リスク・休薬期間ともに抗血小板薬で最小クラス。可逆性・短時間作用。うっ血性心不全禁忌。" }
+  }
+];
+
+/* =========================================================
+   状態・フィルタ
+   ========================================================= */
+const state = { q:"", cat:"", grp:"all" };
+
+function visibleMetrics(){
+  if(state.grp==="all") return METRICS;
+  return METRICS.filter(m=>m.group===state.grp);
+}
+function filteredDrugs(){
+  const q = state.q.trim().toLowerCase();
+  return DRUGS.filter(d=>{
+    if(state.cat && d.cat!==state.cat) return false;
+    if(q){
+      const hay = (d.name+" "+d.abbr+" "+d.target+" "+d.cat).toLowerCase();
+      if(hay.indexOf(q)===-1) return false;
+    }
+    return true;
+  });
+}
+
+/* =========================================================
+   テーブル描画
+   ========================================================= */
+function buildHead(){
+  const row=document.getElementById("headrow");
+  row.innerHTML="";
+  const th0=document.createElement("th");
+  th0.className="drugcol";
+  th0.innerHTML='<span style="font-size:11px;color:var(--muted);font-weight:700">薬剤 ＼ 指標</span>';
+  row.appendChild(th0);
+  visibleMetrics().forEach(m=>{
+    const th=document.createElement("th");
+    th.className="methead";
+    th.innerHTML='<span class="mname">'+m.name+'</span><span class="msub">'+m.sub+'</span><span class="gbar g-'+m.group+'"></span>';
+    row.appendChild(th);
+  });
+}
+
+function buildBody(){
+  const body=document.getElementById("body");
+  body.innerHTML="";
+  const drugs=filteredDrugs();
+  const mets=visibleMetrics();
+  const nores=document.getElementById("noresult");
+  const scroll=document.querySelector(".scroll");
+  if(drugs.length===0){nores.style.display="block";scroll.style.display="none";}
+  else{nores.style.display="none";scroll.style.display="block";}
+
+  let lastCat=null;
+  drugs.forEach(d=>{
+    if(d.cat!==lastCat){
+      lastCat=d.cat;
+      const ctr=document.createElement("tr");ctr.className="catrow";
+      const ctd=document.createElement("td");
+      ctd.colSpan=mets.length+1;ctd.textContent=d.cat;
+      ctr.appendChild(ctd);body.appendChild(ctr);
+    }
+    const tr=document.createElement("tr");tr.dataset.drug=d.id;
+    const th=document.createElement("th");th.className="drugcol";
+    th.innerHTML='<span class="dname">'+d.name+' <span class="dabbr">'+d.abbr+'</span></span>'+
+      '<span class="dtarget">'+d.target+'</span>';
+    th.addEventListener("click",()=>openDetail(d.id));
+    tr.appendChild(th);
+    mets.forEach(m=>{
+      const v=d.spec[m.id];
+      const td=document.createElement("td");
+      // 腎/CYP/P-gpが「低依存(0)」の薬は別軸表現でも良いが、ここでは0として淡色表示
+      td.className="cell s"+v;
+      td.textContent=v;
+      td.title=d.name+" / "+m.name+"："+m.scale[v];
+      td.addEventListener("click",()=>openDetail(d.id));
+      tr.appendChild(td);
+    });
+    tr.addEventListener("mouseenter",()=>tr.classList.add("hoverrow"));
+    tr.addEventListener("mouseleave",()=>tr.classList.remove("hoverrow"));
+    body.appendChild(tr);
+  });
+  document.getElementById("count").textContent=drugs.length+" 薬剤 / "+mets.length+" 指標";
+}
+
+function render(){buildHead();buildBody();}
+
+/* =========================================================
+   作用点イラスト（凝固カスケード / 血小板）
+   ========================================================= */
+function cascadeSVG(d){
+  const t=d.target;
+  const isIIa=t.indexOf("トロンビン")>-1;
+  const isXa=t.indexOf("Xa")>-1;
+  const isVKA=t.indexOf("Vit.K")>-1;
+  const isCoag=isIIa||isXa||isVKA;
+  const hi="#c2412e", dim="#c3c8d0", ink="#111a2e";
+  const box=(x,y,w,label,sub,on)=>`
+    <rect x="${x}" y="${y}" width="${w}" height="34" rx="6"
+      fill="${on?'#f7e4df':'#fff'}" stroke="${on?hi:dim}" stroke-width="${on?2.4:1.3}"/>
+    <text x="${x+w/2}" y="${y+(sub?15:21)}" text-anchor="middle" font-family="sans-serif"
+      font-size="12" font-weight="700" fill="${on?hi:ink}">${label}</text>
+    ${sub?`<text x="${x+w/2}" y="${y+27}" text-anchor="middle" font-family="sans-serif" font-size="8.5" fill="#7a8494">${sub}</text>`:""}`;
+  const arr=(x1,y1,x2,y2,on)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${on?hi:dim}" stroke-width="${on?2.2:1.4}" marker-end="url(#ah${on?'H':'D'})"/>`;
+  const blk=(x,y)=>`<line x1="${x-10}" y1="${y}" x2="${x+2}" y2="${y}" stroke="${hi}" stroke-width="3"/><text x="${x+6}" y="${y+3.5}" font-family="sans-serif" font-size="9" font-weight="700" fill="${hi}">阻害</text>`;
+  const defs=`<defs>
+    <marker id="ahH" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="${hi}"/></marker>
+    <marker id="ahD" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="${dim}"/></marker>
+  </defs>`;
+
+  if(isCoag){
+    return `<svg viewBox="0 0 300 262" width="100%" role="img" aria-label="凝固カスケード上の作用点">${defs}
+      ${box(70,12,160,"内因系 / 外因系","第XII・VII因子など",false)}
+      ${arr(150,46,150,66,false)}
+      ${box(95,68,110,"第Xa因子","共通系の要",isXa)}
+      ${arr(150,102,150,122,isXa)}
+      ${box(95,124,110,"トロンビン","第IIa因子",isIIa)}
+      ${arr(150,158,150,178,isIIa)}
+      ${box(85,180,130,"フィブリン形成","凝血塊",false)}
+      ${isXa?blk(240,85):""}
+      ${isIIa?blk(240,141):""}
+      <g opacity="${isVKA?1:.28}">
+        ${box(12,124,70,"Vit.K依存","II·VII·IX·X",isVKA)}
+        <line x1="82" y1="141" x2="93" y2="141" stroke="${isVKA?hi:dim}" stroke-width="${isVKA?2:1.2}" stroke-dasharray="3 2"/>
+      </g>
+      <text x="150" y="236" text-anchor="middle" font-family="sans-serif" font-size="9.5" fill="#7a8494">
+        ${isXa?"第Xa因子を選択的に阻害":isIIa?"トロンビンを直接阻害":"ビタミンK依存性凝固因子の産生を抑制"}</text>
+    </svg>`;
+  }
+  // 抗血小板
+  const isP2Y12=t.indexOf("P2Y12")>-1, isCOX=t.indexOf("COX")>-1, isPDE=t.indexOf("PDE3")>-1;
+  return `<svg viewBox="0 0 300 250" width="100%" role="img" aria-label="血小板活性化経路上の作用点">${defs}
+    <ellipse cx="150" cy="150" rx="88" ry="60" fill="#fff" stroke="${ink}" stroke-width="1.3"/>
+    <text x="150" y="205" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="${ink}">血小板</text>
+    ${box(18,40,92,"ADP","→P2Y12受容体",isP2Y12)}
+    ${arr(64,74,112,122,isP2Y12)} ${isP2Y12?blk(92,102):""}
+    ${box(190,40,92,"COX-1","→TXA2産生",isCOX)}
+    ${arr(236,74,188,122,isCOX)} ${isCOX?blk(214,102):""}
+    <g>
+      <rect x="105" y="134" width="90" height="34" rx="6" fill="${isPDE?'#f7e4df':'#fff'}" stroke="${isPDE?hi:dim}" stroke-width="${isPDE?2.4:1.3}"/>
+      <text x="150" y="149" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="${isPDE?hi:ink}">PDE3</text>
+      <text x="150" y="161" text-anchor="middle" font-family="sans-serif" font-size="8" fill="#7a8494">cAMP↑で抑制</text>
+    </g>
+    <text x="150" y="232" text-anchor="middle" font-family="sans-serif" font-size="9.5" fill="#7a8494">
+      ${isP2Y12?"ADP受容体(P2Y12)を阻害し血小板凝集を抑制":isCOX?"COX-1を阻害しTXA2産生を抑制":"PDE3を阻害しcAMPを増やし凝集を抑制"}</text>
+  </svg>`;
+}
+
+/* =========================================================
+   詳細パネル
+   ========================================================= */
+function openDetail(id){
+  const d=DRUGS.find(x=>x.id===id);
+  if(!d)return;
+  const dt=d.detail;
+  const cells=METRICS.map(m=>{
+    const v=d.spec[m.id];
+    const bg=["var(--s0)","var(--s1)","var(--s2)","var(--s3)"][v];
+    const fg=v>=2?"#fff":v===1?"#6b2e1c":"#8a94a4";
+    return '<div class="pcell"><span class="pk">'+m.name+'</span>'+
+      '<span class="pv" style="background:'+bg+';color:'+fg+'">'+v+'</span></div>';
+  }).join("");
+  const panel=document.getElementById("panel");
+  panel.innerHTML=
+    '<button class="close" aria-label="閉じる" onclick="closeDetail()">×</button>'+
+    '<span class="cat-tag">'+d.cat+'</span>'+
+    '<h2>'+d.name+'</h2>'+
+    '<div class="sub">'+d.abbr+'　・　'+d.target+'</div>'+
+    '<div class="cascade">'+cascadeSVG(d)+'</div>'+
+    '<div class="note">'+dt.memo+'</div>'+
+    '<div class="mhead">指標スコア（0〜3・高い＝注意/影響大）</div>'+
+    '<div class="pgrid">'+cells+'</div>'+
+    '<div class="detail-h">基本情報</div>'+
+    kv("半減期",dt.half)+kv("代謝経路",dt.metab)+kv("腎排泄率",dt.renalPct)+
+    '<div class="detail-h">腎機能別 用量</div>'+
+    kv("標準",dt.dose_n)+kv("減量",dt.dose_r)+(dt.dose_s&&dt.dose_s!=="—"?kv("高度低下",dt.dose_s):"")+
+    '<div class="detail-h">周術期・抜歯前 休薬</div>'+
+    kv("通常腎機能",dt.wo_n)+(dt.wo_r&&dt.wo_r!=="—"?kv("腎機能低下",dt.wo_r):"")+kv("抜歯",dt.dental)+kv("中和・緊急",dt.rev)+
+    '<div class="detail-h">相互作用</div>'+
+    '<div style="font-size:12.5px;color:var(--ink2);line-height:1.7;padding-top:4px">'+dt.inter+'</div>';
+  document.getElementById("overlay").classList.add("open");
+}
+function kv(k,v){return '<div class="kv"><span class="k">'+k+'</span><span class="v">'+v+'</span></div>';}
+function closeDetail(){document.getElementById("overlay").classList.remove("open");}
+document.getElementById("overlay").addEventListener("click",function(e){if(e.target===this)closeDetail();});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDetail();});
+
+/* ---- controls ---- */
+(function initCat(){
+  const sel=document.getElementById("cat");
+  const cats=[];DRUGS.forEach(d=>{if(cats.indexOf(d.cat)===-1)cats.push(d.cat);});
+  cats.forEach(c=>{const o=document.createElement("option");o.value=c;o.textContent=c;sel.appendChild(o);});
+  sel.addEventListener("change",function(){state.cat=this.value;render();});
+})();
+document.getElementById("q").addEventListener("input",function(){state.q=this.value;render();});
+document.querySelectorAll("#grpseg button").forEach(b=>{
+  b.addEventListener("click",function(){
+    document.querySelectorAll("#grpseg button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");state.grp=b.dataset.g;render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>
